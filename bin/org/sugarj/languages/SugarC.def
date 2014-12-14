@@ -1,0 +1,26 @@
+definition
+
+module org/sugarj/languages/SugarC
+imports org/sugarj/languages/C 
+        org/sugarj/languages/Sugar
+
+exports
+  lexical syntax
+    [\ \t\12\r\n] -> LAYOUT
+
+  context-free restrictions
+    LAYOUT? -/- [\ \t\12\r\n]
+
+  %% ToplevelDeclaration
+  context-free syntax 
+    CExternalDeclaration 	-> ToplevelDeclaration
+    CExtension 				-> ToplevelDeclaration
+
+  %% sugar declaration
+  context-free syntax
+    CExtensionHead CExtensionBody -> CExtension {"CExtension", prefer}
+    "sugar" CIdentifier    -> CExtensionHead {"CExtensionHead"}
+    "{" ExtensionElem* "}" -> CExtensionBody {"CExtensionBody"}
+
+  lexical restrictions
+    "sugar" -/- [a-zA-Z0-9\'\-\_]

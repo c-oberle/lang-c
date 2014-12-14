@@ -1,0 +1,4 @@
+module org/sugarj/c/init/initTrans
+imports org/sugarj/stdlib/StdTrans
+        org/sugarj/languages/SugarC
+

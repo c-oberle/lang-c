@@ -1,0 +1,15 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: C
+Bundle-SymbolicName: org.sugarj.language.c;singleton:=true
+Bundle-Version: 1.0.0.qualifier
+Bundle-Activator: org.sugarj.c.Activator
+Require-Bundle: org.eclipse.ui,
+ org.eclipse.core.runtime,
+ org.sugarj.common;bundle-version="1.2.0",
+ org.sugarj.baselang;bundle-version="1.2.0",
+ org.spoofax.terms;bundle-version="1.2.0",
+ org.strategoxt.strj;bundle-version="1.2.0",
+ org.sugarj.compiler
+Bundle-RequiredExecutionEnvironment: JavaSE-1.7
+Bundle-ActivationPolicy: lazy
