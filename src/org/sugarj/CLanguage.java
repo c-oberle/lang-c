@@ -50,6 +50,10 @@ public class CLanguage extends AbstractBaseLanguage {
 		return "c";
 	}
 
+	public String getHeaderFileExtension() {
+		return "h";
+	}
+
 	@Override
 	public List<Path> getPackagedGrammars() {
 		List<Path> grammars = new LinkedList<Path>(super.getPackagedGrammars());
@@ -95,23 +99,23 @@ public class CLanguage extends AbstractBaseLanguage {
 
 	@Override
 	public boolean isImportDecl(IStrategoTerm decl) {
-		return isApplication(decl, "Include")
-				|| isApplication(decl, "StdInclude");
+		return isApplication(decl, "CExtensionImport");
 	}
 
 	@Override
 	public boolean isBaseDecl(IStrategoTerm decl) {
-		return isApplication(decl, "ExtDec") || isApplication(decl, "FunDef");
+		return isApplication(decl, "ExtDec") || isApplication(decl, "FunDef")
+				|| isApplication(decl, "Include")
+				|| isApplication(decl, "StdInclude") || isHeaderFlag(decl);
 	}
 
 	@Override
 	public boolean isPlainDecl(IStrategoTerm decl) {
-		return isApplication(decl, "PlainDec");
+		return false;
 	}
 
-	@Override
-	public boolean isTransformationDec(IStrategoTerm decl) {
-		return isApplication(decl, "TransDec");
+	public boolean isHeaderFlag(IStrategoTerm decl) {
+		return isApplication(decl, "CHeaderFlag");
 	}
 
 }

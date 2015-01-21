@@ -3,6 +3,8 @@ imports org/sugarj/languages/Sugar
 
 signature
   constructors
-    CExtension     : CExtensionHead * CExtensionBody -> CExtension
-    CExtensionHead : CIdentifier -> CExtensionHead
-    CExtensionBody : List(ExtensionElem) -> CExtensionBody
+    CExtension       : CExtensionHead * CExtensionBody -> CExtension
+    CExtensionHead   : CIdentifier -> CExtensionHead
+    CExtensionBody 	 : List(ExtensionElem) -> CExtensionBody
+   	CExtensionImport : CIdentifier -> CExtensionImport
+   	CModuleName		 : String -> CModuleName

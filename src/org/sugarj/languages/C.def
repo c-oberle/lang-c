@@ -1579,7 +1579,7 @@ exports
     Declaration                        -> ExternalDeclaration {cons("ExtDec")}
     
     %% (added) support #include directives
-    Include							   -> ExternalDeclaration
+    Include							   -> ExternalDeclaration 
     
 %%
 %% TypeIds.esdf:
@@ -1814,6 +1814,7 @@ imports
 exports
 	context-free start-symbols
 		TranslationUnit
+		ExternalDeclarationSeq
     
 
 module org/sugarj/languages/C
@@ -1898,4 +1899,5 @@ imports C [
 	UnaryExpr					=> CUnaryExpr
 	UnaryOperator				=> CUnaryOperator
 	Include						=> CInclude
+	IncludeFile					=> CIncludeFile
 ]
