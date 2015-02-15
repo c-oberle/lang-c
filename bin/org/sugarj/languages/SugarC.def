@@ -16,7 +16,6 @@ exports
     CExternalDeclaration 	-> ToplevelDeclaration
     CExtension 				-> ToplevelDeclaration
     CExtensionImport		-> ToplevelDeclaration
-    CHeaderFlag				-> ToplevelDeclaration
 
   %% sugar declaration
   context-free syntax
@@ -27,10 +26,6 @@ exports
   %% sugar import
   context-free syntax  
     "#" "import" "\"" CIncludeFile "\"" -> CExtensionImport {"CExtensionImport"}
-    
-  %% header flag
-  context-free syntax
-  	"#" "header"			-> CHeaderFlag {"CHeaderFlag"}  
 	
   lexical restrictions
     "sugar" -/- [a-zA-Z0-9\'\-\_]

@@ -1,4 +1,3 @@
 module org/sugarj/c/init/initGrammar
-imports org/sugarj/languages/C
-        org/sugarj/languages/SugarC
+imports org/sugarj/languages/SugarC
         org/sugarj/stdlib/Common

@@ -1808,13 +1808,11 @@ imports
 	TypeQualifiers
 	TypeSpecifiers
 	UnaryExpressions
-	
 	Includes
 
 exports
 	context-free start-symbols
 		TranslationUnit
-		ExternalDeclarationSeq
     
 
 module org/sugarj/languages/C

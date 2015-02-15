@@ -7,4 +7,3 @@ signature
     CExtensionHead   : CIdentifier -> CExtensionHead
     CExtensionBody 	 : List(ExtensionElem) -> CExtensionBody
    	CExtensionImport : CIdentifier -> CExtensionImport
-   	CModuleName		 : String -> CModuleName

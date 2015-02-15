@@ -2,9 +2,10 @@ package org.sugarj;
 
 import static org.sugarj.common.ATermCommands.getApplicationSubterm;
 import static org.sugarj.common.ATermCommands.isApplication;
-import static org.sugarj.util.TermFinder.find;
+import static org.sugarj.util.TermFinder.mayFind;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
@@ -16,7 +17,6 @@ import org.sugarj.common.ATermCommands;
 import org.sugarj.common.Environment;
 import org.sugarj.common.FileCommands;
 import org.sugarj.common.StringCommands;
-import org.sugarj.common.path.AbsolutePath;
 import org.sugarj.common.path.Path;
 import org.sugarj.common.path.RelativePath;
 
@@ -24,13 +24,12 @@ public class CProcessor extends AbstractBaseProcessor {
 
 	private static final long serialVersionUID = 2057395343737713876L;
 
-	private String moduleHeader;
+	private CLanguage lang = CLanguage.getInstance();
 	private List<String> imports = new LinkedList<String>();
 	private List<String> body = new LinkedList<String>();
 
 	private Path outFile;
-	private String namespaceName;
-	private boolean isHeader;
+	private boolean isMain;
 
 	private IStrategoTerm ppTable;
 
@@ -39,13 +38,7 @@ public class CProcessor extends AbstractBaseProcessor {
 		if (body.isEmpty()) {
 			return "";
 		}
-
 		StringBuilder sourceBuilder = new StringBuilder();
-
-		if (moduleHeader != null) {
-			sourceBuilder.append(moduleHeader).append("\n\n");
-		}
-
 		sourceBuilder.append(StringCommands.printListSeparated(imports, "\n"))
 				.append("\n\n");
 		sourceBuilder.append(StringCommands.printListSeparated(body, "\n"));
@@ -56,33 +49,17 @@ public class CProcessor extends AbstractBaseProcessor {
 
 	@Override
 	public Path getGeneratedSourceFile() {
-		updateOutFile();
 		return outFile;
-	}
-
-	private void updateOutFile() {
-		CLanguage lang = getLanguage();
-		String baseFileExtension = lang.getBaseFileExtension();
-		String outPath = outFile.getAbsolutePath();
-
-		if (isHeader && outPath.endsWith(baseFileExtension)) {
-			StringBuilder updatedPath = new StringBuilder(outPath);
-			updatedPath.delete(outPath.length() - baseFileExtension.length()
-					- 1, outPath.length());
-			updatedPath.append(".");
-			updatedPath.append(lang.getHeaderFileExtension());
-			outFile = new AbsolutePath(updatedPath.toString());
-		}
 	}
 
 	@Override
 	public String getNamespace() {
-		return namespaceName;
+		return "";
 	}
 
 	@Override
 	public CLanguage getLanguage() {
-		return CLanguage.getInstance();
+		return lang;
 	}
 
 	@Override
@@ -91,23 +68,27 @@ public class CProcessor extends AbstractBaseProcessor {
 			throw new IllegalArgumentException(
 					"Can only compile one source file at a time.");
 
-		isHeader = false;
-
 		String firstFileName = FileCommands.dropExtension(sourceFiles
 				.iterator().next().getRelativePath());
 
-		outFile = environment.createOutPath(firstFileName + "."
-				+ CLanguage.getInstance().getBaseFileExtension());
+		String fileExtension = null;
+
+		if (firstFileName.endsWith("_" + lang.getHeaderFileExtension())) {
+			fileExtension = lang.getHeaderFileExtension();
+		} else {
+			fileExtension = lang.getBaseFileExtension();
+		}
+
+		outFile = environment
+				.createOutPath(firstFileName + "." + fileExtension);
 	}
 
 	@Override
 	public List<String> processBaseDecl(IStrategoTerm toplevelDecl)
 			throws IOException {
-		if (!isHeader && getLanguage().isHeaderFlag(toplevelDecl)) {
-			isHeader = true;
-			return Collections.emptyList();
+		if (!isMain && containsMain(toplevelDecl)) {
+			isMain = true;
 		}
-
 		String text = null;
 		try {
 			text = prettyPrint(toplevelDecl);
@@ -126,17 +107,25 @@ public class CProcessor extends AbstractBaseProcessor {
 		String name = null;
 		if (isApplication(toplevelDecl, "CExtensionImport"))
 			name = prettyPrint(toplevelDecl.getSubterm(0));
-		if (name != null && name.contains(".")) {
-			String withoutExtension = name.substring(0, name.indexOf('.'));
-			return withoutExtension;
-		}
 		return name;
 	}
 
 	@Override
 	public void processModuleImport(IStrategoTerm toplevelDecl)
 			throws IOException {
-		imports.add(prettyPrint(toplevelDecl));
+		String prettyPrint = prettyPrint(toplevelDecl);
+		String target = "_" + lang.getHeaderFileExtension() + "\"";
+		String replacement = "." + lang.getHeaderFileExtension() + "\"";
+
+		if (prettyPrint.contains(target)) {
+			prettyPrint = prettyPrint.replace(target, replacement);
+		} else {
+			StringBuilder sb = new StringBuilder(prettyPrint);
+			sb.insert(prettyPrint.lastIndexOf("\""),
+					"." + lang.getBaseFileExtension());
+			prettyPrint = sb.toString();
+		}
+		imports.add(prettyPrint);
 	}
 
 	@Override
@@ -151,8 +140,8 @@ public class CProcessor extends AbstractBaseProcessor {
 
 	public String prettyPrint(IStrategoTerm term) {
 		if (ppTable == null)
-			ppTable = ATermCommands.readPrettyPrintTable(getLanguage()
-					.ensureFile("org/sugarj/languages/C.pp").getAbsolutePath());
+			ppTable = ATermCommands.readPrettyPrintTable(lang.ensureFile(
+					"org/sugarj/languages/C.pp").getAbsolutePath());
 
 		String prettyPrint = ATermCommands.prettyPrint(ppTable, term, interp);
 		return prettyPrint;
@@ -161,7 +150,14 @@ public class CProcessor extends AbstractBaseProcessor {
 	@Override
 	public List<Path> compile(List<Path> outFiles, Path bin,
 			List<Path> includePaths) throws IOException {
-		return CCommands.gcc(outFiles, bin, includePaths);
+		List<Path> paths = new ArrayList<Path>();
+		paths.addAll(CCommands.createDependencyFile(outFile, imports));
+		boolean isMain = false;
+		for (Path p : outFiles) {
+			isMain = p.equals(outFile) ? this.isMain : false;
+			paths.addAll(CCommands.gcc(p, bin, includePaths, isMain));
+		}
+		return paths;
 	}
 
 	@Override
@@ -178,14 +174,14 @@ public class CProcessor extends AbstractBaseProcessor {
 
 	private boolean containsMain(IStrategoTerm decl) {
 
-		IStrategoTerm funDef = find("FunDef", decl);
+		IStrategoTerm funDef = mayFind("FunDef", decl);
 
 		if (funDef != null) {
 			IStrategoTerm declarator = funDef.getSubterm(1);
 			IStrategoTerm declParams = declarator.getSubterm(1);
 			String id = declParams.getSubterm(0).getSubterm(0).toString();
 
-			if (id.equals("main")) {
+			if (id.equals("\"main\"")) {
 				return true;
 			}
 		}
