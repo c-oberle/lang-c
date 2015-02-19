@@ -2,6 +2,7 @@ package org.sugarj.c;
 
 import java.io.File;
 import java.io.FileFilter;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -65,7 +66,6 @@ public class CCommands {
 		}
 
 		FileCommands.writeToFile(filePath, sb.toString());
-		System.out.println("Wrote dependency file: " + filePath);
 
 		return generatedFiles;
 	}
@@ -97,13 +97,13 @@ public class CCommands {
 
 	private static Path link(Path outFile, Path bin, List<Path> includePaths) {
 
-		System.out.println("----------Include paths:----------");
-
-		for (Path p : includePaths) {
-			System.out.println(p);
-		}
-
-		System.out.println("----------------------------------");
+		// System.out.println("----------Include paths:----------");
+		//
+		// for (Path p : includePaths) {
+		// System.out.println(p);
+		// }
+		//
+		// System.out.println("----------------------------------");
 
 		try {
 			String[] args = getLinkingArgs(outFile, bin, includePaths);
@@ -136,8 +136,20 @@ public class CCommands {
 		Set<AbsolutePath> imports = getImports(outFile, includePaths);
 		deps.add(new AbsolutePath(outFile.getAbsolutePath()));
 
-		for (Path file : imports) {
-			deps.addAll(getDependencies(file, includePaths));
+		for (AbsolutePath file : imports) {
+			if (!deps.contains(file))
+				deps.addAll(getDependencies(file, includePaths));
+
+			String extension = FileCommands.getExtension(file);
+			String path = file.getAbsolutePath();
+
+			if (extension.equals(lang.getHeaderFileExtension())) {
+				String withoutExtension = FileCommands.dropExtension(path);
+				String cFileName = dropHeaderSuffix(withoutExtension)
+						+ lang.getBaseFileExtension();
+				AbsolutePath cFile = new AbsolutePath(cFileName);
+				deps.addAll(getDependencies(cFile, includePaths));
+			}
 		}
 
 		return deps;
@@ -160,8 +172,14 @@ public class CCommands {
 			String lines[] = content.split("\\r?\\n");
 
 			for (int i = 0; i < lines.length; i++) {
-				if (!lines[i].isEmpty())
-					imports.add(getAbsolutePathForImport(lines[i], includePaths));
+				if (!lines[i].isEmpty()) {
+					try {
+						imports.add(getAbsolutePathForImport(lines[i],
+								includePaths));
+					} catch (FileNotFoundException e) {
+						e.printStackTrace();
+					}
+				}
 			}
 		}
 
@@ -169,24 +187,31 @@ public class CCommands {
 	}
 
 	private static AbsolutePath getAbsolutePathForImport(
-			final String moduleName, List<Path> includePaths) {
+			final String moduleName, List<Path> includePaths)
+			throws FileNotFoundException {
 		AbsolutePath path = null;
+		boolean found = false;
+
 		FileFilter filter = new FileFilter() {
 			@Override
 			public boolean accept(File pathname) {
-				return pathname.getName().endsWith(moduleName);
+				return pathname.getPath().endsWith(moduleName);
 			}
 		};
 		for (Path p : includePaths) {
 			if (p.getAbsolutePath().endsWith(".jar"))
 				continue;
-			RelativePath[] matchingFiles = FileCommands.listFiles(p, filter);
-			if (matchingFiles.length > 0 && matchingFiles[0] != null) {
-				String absPath = matchingFiles[0].getAbsolutePath();
+			List<RelativePath> matchingFiles = FileCommands.listFilesRecursive(
+					p, filter);
+			if (!matchingFiles.isEmpty()) {
+				String absPath = matchingFiles.get(0).getAbsolutePath();
 				path = new AbsolutePath(absPath);
+				found = true;
 				break;
 			}
 		}
+		if (!found)
+			throw new FileNotFoundException();
 		return path;
 	}
 
@@ -200,8 +225,8 @@ public class CCommands {
 		AbsolutePath absOutFile = new AbsolutePath(outFile.getAbsolutePath());
 		absOutFile = FileCommands.replaceExtension(absOutFile,
 				lang.getBinaryFileExtension());
-		String objFileName = absOutFile.getFile().getName();
-		RelativePath objFilePath = new RelativePath(bin, objFileName);
+		// String objFileName = absOutFile.getFile().getName();
+		// RelativePath objFilePath = new RelativePath(bin, objFileName);
 
 		List<String> args = new LinkedList<String>();
 		args.addAll(getStandardArgsForGCC(verbose));
@@ -214,7 +239,8 @@ public class CCommands {
 		}
 
 		args.add(OUT_FLAG);
-		args.add(objFilePath.getAbsolutePath());
+		// args.add(objFilePath.getAbsolutePath());
+		args.add(absOutFile.getAbsolutePath());
 
 		return args.toArray(new String[args.size()]);
 	}
@@ -234,14 +260,13 @@ public class CCommands {
 		args.addAll(getStandardArgsForGCC(verbose));
 
 		for (AbsolutePath dep : deps) {
-			String oldPath = dep.getAbsolutePath();
-			String newPath = FileCommands.dropExtension(oldPath);
+			String extension = FileCommands.getExtension(dep);
 
-			// drop suffix '_h' for header files to link with their
-			// implementation
-			newPath = dropHeaderSuffix(newPath);
+			if (extension.equals(lang.getHeaderFileExtension()))
+				continue;
 
-			Path objFile = FileCommands.addExtension(new AbsolutePath(newPath),
+			Path objFile = FileCommands.replaceExtension(
+					new AbsolutePath(dep.getAbsolutePath()),
 					lang.getBinaryFileExtension());
 			args.add(objFile.getAbsolutePath());
 		}

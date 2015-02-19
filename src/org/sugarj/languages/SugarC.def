@@ -25,7 +25,7 @@ exports
     
   %% sugar import
   context-free syntax  
-    "#" "import" "\"" CIncludeFile "\"" -> CExtensionImport {"CExtensionImport"}
+    "#" "import" "\"" CIncludeFile "\"" -> CExtensionImport {"CExtensionImport"} 
 	
   lexical restrictions
     "sugar" -/- [a-zA-Z0-9\'\-\_]

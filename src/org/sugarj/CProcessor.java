@@ -29,6 +29,7 @@ public class CProcessor extends AbstractBaseProcessor {
 	private List<String> body = new LinkedList<String>();
 
 	private Path outFile;
+	private String fileName;
 	private boolean isMain;
 
 	private IStrategoTerm ppTable;
@@ -54,7 +55,9 @@ public class CProcessor extends AbstractBaseProcessor {
 
 	@Override
 	public String getNamespace() {
-		return "";
+		int i = fileName.lastIndexOf(Environment.sep);
+		String namespace = i > 0 ? fileName.substring(0, i) : "";
+		return namespace;
 	}
 
 	@Override
@@ -68,19 +71,18 @@ public class CProcessor extends AbstractBaseProcessor {
 			throw new IllegalArgumentException(
 					"Can only compile one source file at a time.");
 
-		String firstFileName = FileCommands.dropExtension(sourceFiles
-				.iterator().next().getRelativePath());
+		fileName = FileCommands.dropExtension(sourceFiles.iterator().next()
+				.getRelativePath());
 
 		String fileExtension = null;
 
-		if (firstFileName.endsWith(lang.getHeaderSuffix())) {
+		if (fileName.endsWith(lang.getHeaderSuffix())) {
 			fileExtension = lang.getHeaderFileExtension();
 		} else {
 			fileExtension = lang.getBaseFileExtension();
 		}
 
-		outFile = environment
-				.createOutPath(firstFileName + "." + fileExtension);
+		outFile = environment.createOutPath(fileName + "." + fileExtension);
 	}
 
 	@Override
@@ -150,13 +152,15 @@ public class CProcessor extends AbstractBaseProcessor {
 	@Override
 	public List<Path> compile(List<Path> outFiles, Path bin,
 			List<Path> includePaths) throws IOException {
+		if (outFiles.size() != 1)
+			throw new IllegalArgumentException(
+					"Can only compile one source file at a time.");
 		List<Path> generatedFiles = new ArrayList<Path>();
-		boolean isMain = false;
-		for (Path p : outFiles) {
-			isMain = p.equals(outFile) ? this.isMain : false;
-			generatedFiles.addAll(CCommands.writeDependencyFile(p, imports));
-			generatedFiles.addAll(CCommands.gcc(p, bin, includePaths, isMain));
-		}
+		Path outFile = outFiles.get(0);
+		generatedFiles.addAll(CCommands.writeDependencyFile(outFile, imports));
+		generatedFiles
+				.addAll(CCommands.gcc(outFile, bin, includePaths, isMain));
+
 		return generatedFiles;
 	}
 
