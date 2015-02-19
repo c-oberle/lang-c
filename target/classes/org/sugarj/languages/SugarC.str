@@ -1,0 +1,9 @@
+module org/sugarj/languages/SugarC
+imports org/sugarj/languages/Sugar
+
+signature
+  constructors
+    CExtension       : CExtensionHead * CExtensionBody -> CExtension
+    CExtensionHead   : CIdentifier -> CExtensionHead
+    CExtensionBody 	 : List(ExtensionElem) -> CExtensionBody
+   	CExtensionImport : CIdentifier -> CExtensionImport

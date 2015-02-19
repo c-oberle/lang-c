@@ -73,7 +73,7 @@ public class CProcessor extends AbstractBaseProcessor {
 
 		String fileExtension = null;
 
-		if (firstFileName.endsWith("_" + lang.getHeaderFileExtension())) {
+		if (firstFileName.endsWith(lang.getHeaderSuffix())) {
 			fileExtension = lang.getHeaderFileExtension();
 		} else {
 			fileExtension = lang.getBaseFileExtension();
@@ -114,7 +114,7 @@ public class CProcessor extends AbstractBaseProcessor {
 	public void processModuleImport(IStrategoTerm toplevelDecl)
 			throws IOException {
 		String prettyPrint = prettyPrint(toplevelDecl);
-		String target = "_" + lang.getHeaderFileExtension() + "\"";
+		String target = lang.getHeaderSuffix() + "\"";
 		String replacement = "." + lang.getHeaderFileExtension() + "\"";
 
 		if (prettyPrint.contains(target)) {
@@ -150,14 +150,14 @@ public class CProcessor extends AbstractBaseProcessor {
 	@Override
 	public List<Path> compile(List<Path> outFiles, Path bin,
 			List<Path> includePaths) throws IOException {
-		List<Path> paths = new ArrayList<Path>();
-		paths.addAll(CCommands.createDependencyFile(outFile, imports));
+		List<Path> generatedFiles = new ArrayList<Path>();
 		boolean isMain = false;
 		for (Path p : outFiles) {
 			isMain = p.equals(outFile) ? this.isMain : false;
-			paths.addAll(CCommands.gcc(p, bin, includePaths, isMain));
+			generatedFiles.addAll(CCommands.writeDependencyFile(p, imports));
+			generatedFiles.addAll(CCommands.gcc(p, bin, includePaths, isMain));
 		}
-		return paths;
+		return generatedFiles;
 	}
 
 	@Override
