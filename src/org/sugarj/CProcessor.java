@@ -26,19 +26,20 @@ public class CProcessor extends AbstractBaseProcessor {
 
 	private CLanguage lang = CLanguage.getInstance();
 	private List<String> imports = new LinkedList<String>();
+	private List<String> deps = new LinkedList<String>();
 	private List<String> body = new LinkedList<String>();
 
 	private Path outFile;
-	private String fileName;
+	private String relFileName;
 	private boolean isMain;
 
 	private IStrategoTerm ppTable;
 
 	@Override
 	public String getGeneratedSource() {
-		if (body.isEmpty()) {
+		if (body.isEmpty())
 			return "";
-		}
+
 		StringBuilder sourceBuilder = new StringBuilder();
 		sourceBuilder.append(StringCommands.printListSeparated(imports, "\n"))
 				.append("\n\n");
@@ -55,8 +56,8 @@ public class CProcessor extends AbstractBaseProcessor {
 
 	@Override
 	public String getNamespace() {
-		int i = fileName.lastIndexOf(Environment.sep);
-		String namespace = i > 0 ? fileName.substring(0, i) : "";
+		int i = relFileName.lastIndexOf(Environment.sep);
+		String namespace = i > 0 ? relFileName.substring(0, i) : "";
 		return namespace;
 	}
 
@@ -71,18 +72,11 @@ public class CProcessor extends AbstractBaseProcessor {
 			throw new IllegalArgumentException(
 					"Can only compile one source file at a time.");
 
-		fileName = FileCommands.dropExtension(sourceFiles.iterator().next()
+		relFileName = FileCommands.dropExtension(sourceFiles.iterator().next()
 				.getRelativePath());
 
-		String fileExtension = null;
-
-		if (fileName.endsWith(lang.getHeaderSuffix())) {
-			fileExtension = lang.getHeaderFileExtension();
-		} else {
-			fileExtension = lang.getBaseFileExtension();
-		}
-
-		outFile = environment.createOutPath(fileName + "." + fileExtension);
+		outFile = environment.createOutPath(relFileName + "."
+				+ lang.getBaseFileExtension());
 	}
 
 	@Override
@@ -107,26 +101,29 @@ public class CProcessor extends AbstractBaseProcessor {
 	@Override
 	public String getModulePathOfImport(IStrategoTerm toplevelDecl) {
 		String name = null;
-		if (isApplication(toplevelDecl, "CExtensionImport"))
+		if (isApplication(toplevelDecl, "CExtensionImport")
+				|| isApplication(toplevelDecl, "CForwarding"))
 			name = prettyPrint(toplevelDecl.getSubterm(0));
+		if (!name.contains("/")) {
+			name = getNamespace() + Environment.sep + name;
+		}
 		return name;
 	}
 
 	@Override
 	public void processModuleImport(IStrategoTerm toplevelDecl)
 			throws IOException {
-		String prettyPrint = prettyPrint(toplevelDecl);
-		String target = lang.getHeaderSuffix() + "\"";
-		String replacement = "." + lang.getHeaderFileExtension() + "\"";
-
-		if (prettyPrint.contains(target)) {
-			prettyPrint = prettyPrint.replace(target, replacement);
-		} else {
-			StringBuilder sb = new StringBuilder(prettyPrint);
-			sb.insert(prettyPrint.lastIndexOf("\""),
-					"." + lang.getBaseFileExtension());
-			prettyPrint = sb.toString();
+		if (isApplication(toplevelDecl, "CForwarding")) {
+			deps.add(getModulePathOfImport(toplevelDecl) + "."
+					+ lang.getBaseFileExtension());
+			return;
 		}
+		String prettyPrint = prettyPrint(toplevelDecl);
+		StringBuilder sb = new StringBuilder(prettyPrint);
+		String extension = lang.getBaseFileExtension();
+		sb.insert(prettyPrint.lastIndexOf("\""), "." + extension);
+		prettyPrint = sb.toString();
+
 		imports.add(prettyPrint);
 	}
 
@@ -157,7 +154,8 @@ public class CProcessor extends AbstractBaseProcessor {
 					"Can only compile one source file at a time.");
 		List<Path> generatedFiles = new ArrayList<Path>();
 		Path outFile = outFiles.get(0);
-		generatedFiles.addAll(CCommands.writeDependencyFile(outFile, imports));
+		generatedFiles.addAll(CCommands.writeDependencyFile(outFile, imports,
+				deps));
 		generatedFiles
 				.addAll(CCommands.gcc(outFile, bin, includePaths, isMain));
 
@@ -177,9 +175,7 @@ public class CProcessor extends AbstractBaseProcessor {
 	}
 
 	private boolean containsMain(IStrategoTerm decl) {
-
 		IStrategoTerm funDef = mayFind("FunDef", decl);
-
 		if (funDef != null) {
 			IStrategoTerm declarator = funDef.getSubterm(1);
 			IStrategoTerm declParams = declarator.getSubterm(1);
@@ -189,7 +185,6 @@ public class CProcessor extends AbstractBaseProcessor {
 				return true;
 			}
 		}
-
 		return false;
 	}
 }

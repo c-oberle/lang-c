@@ -7,3 +7,4 @@ signature
     CExtensionHead   : CIdentifier -> CExtensionHead
     CExtensionBody 	 : List(ExtensionElem) -> CExtensionBody
    	CExtensionImport : CIncludeFile -> CExtensionImport
+   	CForwarding		 : CIncludeFile -> CForwarding
