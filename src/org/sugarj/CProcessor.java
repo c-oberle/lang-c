@@ -25,6 +25,7 @@ public class CProcessor extends AbstractBaseProcessor {
 	private static final long serialVersionUID = 2057395343737713876L;
 
 	private CLanguage lang = CLanguage.getInstance();
+	private List<String> pragmas = new LinkedList<String>();
 	private List<String> imports = new LinkedList<String>();
 	private List<String> deps = new LinkedList<String>();
 	private List<String> body = new LinkedList<String>();
@@ -41,6 +42,8 @@ public class CProcessor extends AbstractBaseProcessor {
 			return "";
 
 		StringBuilder sourceBuilder = new StringBuilder();
+		sourceBuilder.append(StringCommands.printListSeparated(pragmas, "\n"))
+				.append("\n");
 		sourceBuilder.append(StringCommands.printListSeparated(imports, "\n"))
 				.append("\n\n");
 		sourceBuilder.append(StringCommands.printListSeparated(body, "\n"));
@@ -85,6 +88,7 @@ public class CProcessor extends AbstractBaseProcessor {
 		if (!isMain && containsMain(toplevelDecl)) {
 			isMain = true;
 		}
+
 		String text = null;
 		try {
 			text = prettyPrint(toplevelDecl);
@@ -92,8 +96,12 @@ public class CProcessor extends AbstractBaseProcessor {
 			ATermCommands.setErrorMessage(toplevelDecl,
 					"pretty printing C failed");
 		}
-		if (text != null)
-			body.add(text);
+		if (text != null) {
+			if (isApplication(toplevelDecl, "PragmaOnce"))
+				pragmas.add(text);
+			else
+				body.add(text);
+		}
 
 		return Collections.emptyList();
 	}
@@ -104,24 +112,27 @@ public class CProcessor extends AbstractBaseProcessor {
 		if (isApplication(toplevelDecl, "CExtensionImport")
 				|| isApplication(toplevelDecl, "CForwarding"))
 			name = prettyPrint(toplevelDecl.getSubterm(0));
-		if (!name.contains("/")) {
-			name = getNamespace() + Environment.sep + name;
-		}
 		return name;
 	}
 
 	@Override
 	public void processModuleImport(IStrategoTerm toplevelDecl)
 			throws IOException {
+		String modulePath = getModulePathOfImport(toplevelDecl);
+		String namespace = getNamespace();
+
 		if (isApplication(toplevelDecl, "CForwarding")) {
-			deps.add(getModulePathOfImport(toplevelDecl) + "."
-					+ lang.getBaseFileExtension());
+			deps.add(modulePath + "." + lang.getBaseFileExtension());
 			return;
 		}
 		String prettyPrint = prettyPrint(toplevelDecl);
 		StringBuilder sb = new StringBuilder(prettyPrint);
 		String extension = lang.getBaseFileExtension();
 		sb.insert(prettyPrint.lastIndexOf("\""), "." + extension);
+
+		if (!namespace.isEmpty() && modulePath.startsWith(namespace)) {
+			sb.delete(sb.indexOf("\"") + 1, sb.lastIndexOf(Environment.sep) + 1);
+		}
 		prettyPrint = sb.toString();
 
 		imports.add(prettyPrint);

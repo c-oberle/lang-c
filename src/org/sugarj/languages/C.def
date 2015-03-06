@@ -1553,6 +1553,7 @@ imports
 
   Declarations
   Includes
+  Pragmas
 
 exports
 	
@@ -1578,8 +1579,9 @@ exports
     FunctionDefinition                 -> ExternalDeclaration
     Declaration                        -> ExternalDeclaration {cons("ExtDec")}
     
-    %% (added) support #include directives
+    %% (added) support preprocessor directives
     Include							   -> ExternalDeclaration 
+    Pragma							   -> ExternalDeclaration 
     
 %%
 %% TypeIds.esdf:
@@ -1749,7 +1751,17 @@ exports
 	context-free syntax
 		"#" "include" "<" IncludeFile ">"		-> Include {cons("StdInclude")}
 		"#" "include" "\"" IncludeFile "\"" 	-> Include {cons("Include")}
+
+%%
+%% Support #pragma once directive as alternative to include guards
+module Pragmas
+
+exports
+	sorts
+		Pragma
 		
+	context-free syntax
+		"#" "pragma" "once"		-> Pragma {cons("PragmaOnce")}
 		   
 
 module C
@@ -1809,6 +1821,7 @@ imports
 	TypeSpecifiers
 	UnaryExpressions
 	Includes
+	Pragmas
 
 exports
 	context-free start-symbols
@@ -1856,6 +1869,7 @@ imports C [
 	Initializer					=> CInitializer
 	InitializerSeq				=> CInitializerSeq
 	InitializerList				=> CInitializerList
+	IntLiteral					=> CIntLiteral
 	IterationStm				=> CIterationStm
 	JumpStm						=> CJumpStm
 	LabeledStm					=> CLabeledStm
@@ -1898,4 +1912,5 @@ imports C [
 	UnaryOperator				=> CUnaryOperator
 	Include						=> CInclude
 	IncludeFile					=> CIncludeFile
+	Pragma						=> CPragma
 ]

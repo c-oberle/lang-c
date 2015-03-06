@@ -111,7 +111,8 @@ public class CLanguage extends AbstractBaseLanguage {
 	public boolean isBaseDecl(IStrategoTerm decl) {
 		return isApplication(decl, "ExtDec") || isApplication(decl, "FunDef")
 				|| isApplication(decl, "Include")
-				|| isApplication(decl, "StdInclude");
+				|| isApplication(decl, "StdInclude")
+				|| isApplication(decl, "PragmaOnce");
 	}
 
 	@Override

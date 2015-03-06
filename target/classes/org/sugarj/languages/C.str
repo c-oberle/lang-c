@@ -3,6 +3,7 @@ module C
 signature
   constructors
                               : Include -> ExternalDeclaration
+                              : Pragma -> ExternalDeclaration
     ExtDec                    : Declaration -> ExternalDeclaration
                               : FunctionDefinition -> ExternalDeclaration
     ExtDecSeq                 : List(ExternalDeclaration) -> ExternalDeclarationSeq
@@ -10,6 +11,7 @@ signature
     Include                   : IncludeFile -> Include
     StdInclude                : IncludeFile -> Include
                               : String -> IncludeFile
+    PragmaOnce                : Pragma
     Dec                       : DeclarationSpecifierSeq * Option(InitDeclaratorList) -> Declaration
     DecSeq                    : List(Declaration) -> DeclarationList
     FunDef                    : DeclarationSpecifierSeq * Declarator * Option(DeclarationList) * CompoundStm -> FunctionDefinition
