@@ -83,19 +83,19 @@ public class CCommands {
 		// lang.getHeaderSuffix()))
 		// return null;
 
-		// try {
-		String[] args = getCompileArgs(outFile, bin, includePaths);
-		new CommandExecution(true).execute(args);
-		Path generatedFile = parseForObjectFile(args);
-		return generatedFile;
-		// } catch (ExecutionError e) {
-		// try {
-		// new CommandExecution(false).execute(getBuildArgs(outFile, bin,
-		// includePaths, false));
-		// } catch (ExecutionError _) {
-		// }
-		// return null;
-		// }
+		try {
+			String[] args = getCompileArgs(outFile, bin, includePaths);
+			new CommandExecution(true).execute(args);
+			Path generatedFile = parseForGeneratedFile(args);
+			return generatedFile;
+		} catch (ExecutionError e) {
+			try {
+				new CommandExecution(false).execute(getCompileArgs(outFile,
+						bin, includePaths, false));
+			} catch (ExecutionError _) {
+			}
+			return null;
+		}
 	}
 
 	private static Path link(Path outFile, Path bin, List<Path> includePaths) {
@@ -110,7 +110,7 @@ public class CCommands {
 			}
 			System.out.println("-------------------------------");
 
-			Path generatedFile = parseForExecutableFile(args);
+			Path generatedFile = parseForGeneratedFile(args);
 			return generatedFile;
 		} catch (ExecutionError e) {
 			try {
@@ -190,7 +190,8 @@ public class CCommands {
 		FileFilter filter = new FileFilter() {
 			@Override
 			public boolean accept(File pathname) {
-				return pathname.getPath().endsWith(moduleName);
+				boolean isDir = pathname.isDirectory();
+				return !isDir && pathname.getPath().endsWith(moduleName);
 			}
 		};
 		for (Path p : includePaths) {
@@ -253,12 +254,6 @@ public class CCommands {
 		return args.toArray(new String[args.size()]);
 	}
 
-	private static String getBinaryFile(Path outFile) {
-		return FileCommands.replaceExtension(
-				new AbsolutePath(outFile.getAbsolutePath()),
-				lang.getBinaryFileExtension()).getAbsolutePath();
-	}
-
 	private static List<String> getStandardArgsForGCC(boolean verbose) {
 		List<String> args = new LinkedList<String>();
 		args.add(GCC);
@@ -269,20 +264,16 @@ public class CCommands {
 		return args;
 	}
 
-	private static Path parseForObjectFile(String[] input) {
-		for (String s : input) {
-			if (s.endsWith("." + lang.getBinaryFileExtension())) {
-				return new AbsolutePath(s);
-			}
-		}
-		return null;
+	private static String getBinaryFile(Path outFile) {
+		return FileCommands.replaceExtension(
+				new AbsolutePath(outFile.getAbsolutePath()),
+				lang.getBinaryFileExtension()).getAbsolutePath();
 	}
 
-	private static Path parseForExecutableFile(String[] input) {
-		for (String s : input) {
-			File f = new File(s);
-			if (f.isFile() && !f.getName().contains(".")) {
-				return new AbsolutePath(s);
+	private static Path parseForGeneratedFile(String[] input) {
+		for (int i = 0; i < input.length - 1; i++) {
+			if (input[i].equals(OUT_FLAG)) {
+				return new AbsolutePath(input[i + 1]);
 			}
 		}
 		return null;

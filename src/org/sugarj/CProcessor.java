@@ -33,6 +33,7 @@ public class CProcessor extends AbstractBaseProcessor {
 	private Path outFile;
 	private String relFileName;
 	private boolean isMain;
+	private boolean isHeader;
 
 	private IStrategoTerm ppTable;
 
@@ -77,9 +78,10 @@ public class CProcessor extends AbstractBaseProcessor {
 
 		relFileName = FileCommands.dropExtension(sourceFiles.iterator().next()
 				.getRelativePath());
+		isHeader = isHeaderModule(relFileName);
+		String extension = getFileExtension(isHeader);
 
-		outFile = environment.createOutPath(relFileName + "."
-				+ lang.getBaseFileExtension());
+		outFile = environment.createOutPath(relFileName + "." + extension);
 	}
 
 	@Override
@@ -110,7 +112,7 @@ public class CProcessor extends AbstractBaseProcessor {
 	public String getModulePathOfImport(IStrategoTerm toplevelDecl) {
 		String name = null;
 		if (isApplication(toplevelDecl, "CExtensionImport")
-				|| isApplication(toplevelDecl, "CForwarding"))
+				|| isApplication(toplevelDecl, "CDependency"))
 			name = prettyPrint(toplevelDecl.getSubterm(0));
 		return name;
 	}
@@ -119,15 +121,16 @@ public class CProcessor extends AbstractBaseProcessor {
 	public void processModuleImport(IStrategoTerm toplevelDecl)
 			throws IOException {
 		String modulePath = getModulePathOfImport(toplevelDecl);
+		boolean isHeader = isHeaderModule(modulePath);
 		String namespace = getNamespace();
 
-		if (isApplication(toplevelDecl, "CForwarding")) {
+		if (isApplication(toplevelDecl, "CDependency")) {
 			deps.add(modulePath + "." + lang.getBaseFileExtension());
 			return;
 		}
 		String prettyPrint = prettyPrint(toplevelDecl);
 		StringBuilder sb = new StringBuilder(prettyPrint);
-		String extension = lang.getBaseFileExtension();
+		String extension = getFileExtension(isHeader);
 		sb.insert(prettyPrint.lastIndexOf("\""), "." + extension);
 
 		if (!namespace.isEmpty() && modulePath.startsWith(namespace)) {
@@ -142,9 +145,9 @@ public class CProcessor extends AbstractBaseProcessor {
 	public String getExtensionName(IStrategoTerm decl) throws IOException {
 		IStrategoTerm cExtensionHead = getApplicationSubterm(decl,
 				"CExtension", 0);
-		IStrategoTerm cId = getApplicationSubterm(cExtensionHead,
+		IStrategoTerm id = getApplicationSubterm(cExtensionHead,
 				"CExtensionHead", 0);
-		String extensionName = prettyPrint(cId);
+		String extensionName = prettyPrint(id);
 		return extensionName;
 	}
 
@@ -185,11 +188,23 @@ public class CProcessor extends AbstractBaseProcessor {
 		return getApplicationSubterm(extensionBody, "CExtensionBody", 0);
 	}
 
+	private String getFileExtension(boolean isHeader) {
+		String extension = isHeader ? lang.getHeaderFileExtension() : lang
+				.getBaseFileExtension();
+		return extension;
+	}
+
+	private boolean isHeaderModule(String moduleName) {
+		boolean isHeader = moduleName.endsWith(lang.getHeaderSuffix());
+		return isHeader;
+	}
+
 	private boolean containsMain(IStrategoTerm decl) {
 		IStrategoTerm funDef = mayFind("FunDef", decl);
 		if (funDef != null) {
 			IStrategoTerm declarator = funDef.getSubterm(1);
-			IStrategoTerm declParams = declarator.getSubterm(1);
+			IStrategoTerm declParams = getApplicationSubterm(declarator,
+					"Declarator", 1);
 			String id = declParams.getSubterm(0).getSubterm(0).toString();
 
 			if (id.equals("\"main\"")) {
