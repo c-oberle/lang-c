@@ -91,6 +91,16 @@ public class CProcessor extends AbstractBaseProcessor {
 			isMain = true;
 		}
 
+		if (isApplication(toplevelDecl, "CDependency")) {
+			List<String> additionalDeps = new ArrayList<String>();
+			String module = getModulePathOfImport(toplevelDecl);
+			String extension = getFileExtension(module);
+			deps.add(module + "." + extension);
+			additionalDeps.add(module);
+
+			return additionalDeps;
+		}
+
 		String text = null;
 		try {
 			text = prettyPrint(toplevelDecl);
@@ -121,16 +131,11 @@ public class CProcessor extends AbstractBaseProcessor {
 	public void processModuleImport(IStrategoTerm toplevelDecl)
 			throws IOException {
 		String modulePath = getModulePathOfImport(toplevelDecl);
-		boolean isHeader = isHeaderModule(modulePath);
 		String namespace = getNamespace();
 
-		if (isApplication(toplevelDecl, "CDependency")) {
-			deps.add(modulePath + "." + lang.getBaseFileExtension());
-			return;
-		}
 		String prettyPrint = prettyPrint(toplevelDecl);
 		StringBuilder sb = new StringBuilder(prettyPrint);
-		String extension = getFileExtension(isHeader);
+		String extension = getFileExtension(modulePath);
 		sb.insert(prettyPrint.lastIndexOf("\""), "." + extension);
 
 		if (!namespace.isEmpty() && modulePath.startsWith(namespace)) {
@@ -192,6 +197,11 @@ public class CProcessor extends AbstractBaseProcessor {
 		String extension = isHeader ? lang.getHeaderFileExtension() : lang
 				.getBaseFileExtension();
 		return extension;
+	}
+
+	private String getFileExtension(String moduleName) {
+		boolean isHeader = isHeaderModule(moduleName);
+		return getFileExtension(isHeader);
 	}
 
 	private boolean isHeaderModule(String moduleName) {

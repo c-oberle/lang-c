@@ -103,8 +103,7 @@ public class CLanguage extends AbstractBaseLanguage {
 
 	@Override
 	public boolean isImportDecl(IStrategoTerm decl) {
-		return isApplication(decl, "CExtensionImport")
-				|| isApplication(decl, "CDependency");
+		return isApplication(decl, "CExtensionImport");
 	}
 
 	@Override
@@ -112,7 +111,8 @@ public class CLanguage extends AbstractBaseLanguage {
 		return isApplication(decl, "ExtDec") || isApplication(decl, "FunDef")
 				|| isApplication(decl, "Include")
 				|| isApplication(decl, "StdInclude")
-				|| isApplication(decl, "PragmaOnce");
+				|| isApplication(decl, "PragmaOnce")
+				|| isApplication(decl, "CDependency");
 	}
 
 	@Override
