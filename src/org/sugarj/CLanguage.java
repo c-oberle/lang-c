@@ -54,6 +54,10 @@ public class CLanguage extends AbstractBaseLanguage {
 		return "h";
 	}
 
+	public String getHeaderSuffix() {
+		return "_" + getHeaderFileExtension();
+	}
+
 	@Override
 	public List<Path> getPackagedGrammars() {
 		List<Path> grammars = new LinkedList<Path>(super.getPackagedGrammars());
@@ -106,16 +110,14 @@ public class CLanguage extends AbstractBaseLanguage {
 	public boolean isBaseDecl(IStrategoTerm decl) {
 		return isApplication(decl, "ExtDec") || isApplication(decl, "FunDef")
 				|| isApplication(decl, "Include")
-				|| isApplication(decl, "StdInclude"); // || isHeaderFlag(decl);
+				|| isApplication(decl, "StdInclude")
+				|| isApplication(decl, "PragmaOnce")
+				|| isApplication(decl, "CDependency");
 	}
 
 	@Override
 	public boolean isPlainDecl(IStrategoTerm decl) {
 		return false;
 	}
-
-	// public boolean isHeaderFlag(IStrategoTerm decl) {
-	// return isApplication(decl, "CHeaderFlag");
-	// }
 
 }

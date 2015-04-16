@@ -6,4 +6,5 @@ signature
     CExtension       : CExtensionHead * CExtensionBody -> CExtension
     CExtensionHead   : CIdentifier -> CExtensionHead
     CExtensionBody 	 : List(ExtensionElem) -> CExtensionBody
-   	CExtensionImport : CIdentifier -> CExtensionImport
+   	CExtensionImport : CIncludeFile -> CExtensionImport
+   	CForwarding		 : CIncludeFile -> CForwarding
