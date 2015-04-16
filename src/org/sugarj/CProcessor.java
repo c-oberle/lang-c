@@ -14,7 +14,7 @@ import java.util.Set;
 import org.spoofax.interpreter.terms.IStrategoTerm;
 import org.sugarj.c.CCommands;
 import org.sugarj.common.ATermCommands;
-import org.sugarj.common.Environment;
+import org.sugarj.baselang.IORelay;
 import org.sugarj.common.FileCommands;
 import org.sugarj.common.StringCommands;
 import org.sugarj.common.path.Path;
@@ -63,7 +63,7 @@ public class CProcessor extends AbstractBaseProcessor {
 	}
 
 	@Override
-	public void init(Set<RelativePath> sourceFiles, Environment environment) {
+	public void init(Set<RelativePath> sourceFiles, IORelay environment) {
 		if (sourceFiles.size() != 1)
 			throw new IllegalArgumentException(
 					"Can only compile one source file at a time.");
