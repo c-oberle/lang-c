@@ -12,8 +12,9 @@ import java.util.List;
 import java.util.Set;
 
 import org.sugarj.CLanguage;
-import org.sugarj.common.CommandExecution;
-import org.sugarj.common.CommandExecution.ExecutionError;
+import org.sugarj.common.Exec;
+import org.sugarj.common.Exec.ExecutionError;
+import org.sugarj.common.Exec.ExecutionResult;
 import org.sugarj.common.FileCommands;
 import org.sugarj.common.path.AbsolutePath;
 import org.sugarj.common.path.Path;
@@ -24,7 +25,7 @@ public class CCommands {
 	private static final String NO_LINKING_FLAG = "-c";
 	private static final String C99_FLAG = "-std=c99";
 	private static final String OUT_FLAG = "-o";
-	private static final String INCLUDE_FLAG = "-I";
+	private static final String INCLUDE_FLAG = "-I"; 
 	private static final String WALL_FLAG = "-Wall";
 	private static final String VERBOSE_FLAG = "-v";
 
@@ -85,13 +86,13 @@ public class CCommands {
 
 		try {
 			String[] args = getCompileArgs(outFile, bin, includePaths);
-			new CommandExecution(true).execute(args);
+			Exec.run(args);
 			Path generatedFile = parseForGeneratedFile(args);
 			return generatedFile;
 		} catch (ExecutionError e) {
 			try {
-				new CommandExecution(false).execute(getCompileArgs(outFile,
-						bin, includePaths, false));
+				Exec.run(false,
+						getCompileArgs(outFile, bin, includePaths, false));
 			} catch (ExecutionError _) {
 			}
 			return null;
@@ -101,12 +102,16 @@ public class CCommands {
 	private static Path link(Path outFile, Path bin, List<Path> includePaths) {
 		try {
 			String[] args = getLinkingArgs(outFile, bin, includePaths);
-			String[][] output = new CommandExecution(true).execute(args);
+			ExecutionResult output = Exec.run(args);
 
-			String[] stdout = output[1];
+			String[] stdout = output.outMsgs;
+			String[] stderr = output.errMsgs;
 			System.out.println("-------------------------------");
 			for (int i = 0; i < stdout.length; i++) {
 				System.out.println(stdout[i]);
+			}
+			for (int i = 0; i < stderr.length; i++) {
+				System.out.println(stderr[i]);
 			}
 			System.out.println("-------------------------------");
 
@@ -114,8 +119,8 @@ public class CCommands {
 			return generatedFile;
 		} catch (ExecutionError e) {
 			try {
-				new CommandExecution(false).execute(getLinkingArgs(outFile,
-						bin, includePaths, false));
+				Exec.run(false,
+						getLinkingArgs(outFile, bin, includePaths, false));
 			} catch (ExecutionError _) {
 			}
 			return null;
